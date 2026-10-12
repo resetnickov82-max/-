@@ -1,5 +1,6 @@
 import os
 import logging
+import asyncio
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
@@ -78,7 +79,7 @@ async def index(request):
 
 async def api_get(request):
     uid = int(request.rel_url.query.get('user_id', 0))
-    if uid not in users_db: users_db[uid] = {"nickname": "", "tickets": 10} # Даємо 10 білетів для старту
+    if uid not in users_db: users_db[uid] = {"nickname": "", "tickets": 10}
     return web.json_response(users_db[uid])
 
 async def api_save(request):
@@ -115,10 +116,14 @@ async def main():
     await runner.setup()
     port = int(os.environ.get("PORT", 8080))
     site = web.TCPSite(runner, '0.0.0.0', port)
-    await site.start()
     
+    # Спершу запускаємо веб-сервер, щоб Render побачив відкритий порт
+    await site.start()
+    logging.info(f"Web server started on port {port}")
+    
+    # А потім запускаємо опитування бота у фоновому режимі
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
-    import asyncio
+    logging.basicConfig(level=logging.INFO)
     asyncio.run(main())
